@@ -24,5 +24,10 @@ namespace RoomReservation.Controllers
 
             return View(rooms);
         }
+
+        public ActionResult Scheduler()
+        {
+            return View();
+        }
     }
 }
