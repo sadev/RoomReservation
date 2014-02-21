@@ -1,4 +1,7 @@
-﻿using System;
+﻿using RoomReservation.Domain.Concrete;
+using RoomReservation.Domain.Entities;
+using RoomReservation.Domain.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -8,9 +11,18 @@ namespace RoomReservation.Controllers
 {
     public class HomeController : Controller
     {
+        IReservationRepository repository;
+
+        public HomeController()
+        {
+            repository = new ReservationRepository();
+        }
+
         public ActionResult Index()
         {
-            return View();
+            IEnumerable<Room> rooms = repository.Rooms;
+
+            return View(rooms);
         }
     }
 }

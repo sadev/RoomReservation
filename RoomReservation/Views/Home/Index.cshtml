@@ -1,4 +1,5 @@
 ﻿@using Microsoft.AspNet.Identity
+@model IEnumerable<RoomReservation.Domain.Entities.Room>
 
 @{
     ViewBag.Title = "Home Page";
@@ -8,10 +9,14 @@
 {
     <div class="jumbotron">
         <h1>Room Reservation</h1>
-        <p class="lead">Welcome to Conference Room Reservation Site.</p>
+        <p class="lead">Welcome to Conference Room Reservation Site. Please pick a room.</p>
+    </div>
+    
+    <div class="container">
+        <!-- render rooms -->
     </div>
 }
 else
 {
-    @Html.Partial("~/Views/Account/Login.cshtml")
+    @Html.Partial("~/Views/Account/Login.cshtml", new RoomReservation.Models.LoginViewModel())
 }
