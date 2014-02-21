@@ -15,9 +15,7 @@
     <ul class="nav nav-pills nav-stacked">
         @foreach (var room in Model)
         {
-
-            <li><button class="btn-default btn-lg" onclick="location.href='@Url.Action("Scheduler", "Home", room.ID)">@room.Title</button></li>
-
+            <li><button class="btn-default btn-lg" onclick="location.href='@Url.Action("Scheduler", "Home", room.ID)'">@room.Title</button></li>         
         }
     </ul>
 }
