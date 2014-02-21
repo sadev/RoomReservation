@@ -11,13 +11,15 @@
         <h1>Room Reservation</h1>
         <p class="lead">Welcome to Conference Room Reservation Site. Please pick a room.</p>
     </div>
-    
-    <div class="container">
+
+    <ul class="nav nav-pills nav-stacked">
         @foreach (var room in Model)
         {
-            <div><a>@room.Title</a></div>
+
+            <li><button class="btn-default btn-lg" onclick="location.href='@Url.Action("Scheduler", "Home", room.ID)">@room.Title</button></li>
+
         }
-    </div>
+    </ul>
 }
 else
 {
