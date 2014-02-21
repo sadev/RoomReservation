@@ -13,7 +13,10 @@
     </div>
     
     <div class="container">
-        <!-- render rooms -->
+        @foreach (var room in Model)
+        {
+            <div><a>@room.Title</a></div>
+        }
     </div>
 }
 else
