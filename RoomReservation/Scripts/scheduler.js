@@ -12,13 +12,14 @@ schedulerNS.calendar = (function () {
                 right: 'agendaWeek,agendaDay'
             },
             //defaultDate: '2014-01-12',
-            allDaySlot: true,
+            allDaySlot: false,
             slotDuration: '00:15:00',
             selectable: true,
             selectHelper: true,
             defaultView: 'agendaWeek',
             editable: true,
             axisFormat: 'HH:mm',
+            timeFormat: 'H(:mm)',
             select: function (start, end) {
                 $('#txtTitle').val('');
                 currentEvent = {
@@ -106,8 +107,6 @@ schedulerNS.calendar = (function () {
                 } else {
                     updateEvent(currentEvent.start, currentEvent.end, currentEvent.id);
                 }
-               // currentEvent.title = $('#txtTitle').val();
-                //$('#calendar').fullCalendar('updateEvent', currentEvent);
                 $('#eventModal').modal('toggle');
             }
         });
@@ -128,12 +127,6 @@ schedulerNS.calendar = (function () {
                 data: event,
                 success: function () {
                     $('#calendar').fullCalendar('refetchEvents');
-                    //var updatedEvent = $('#calendar').fullCalendar('clientEvents', eventId);
-                    //if (updatedEvent) {
-                    //    $('#calendar').fullCalendar('updateEvent', updatedEvent[0]);
-                    //    $('#calendar').fullCalendar('rerenderEvents');
-                    //}
-                   // alert('Event has been updated!');
                 },
                 error: function (xhr, textStatus, errorThrown) {
                     alert('Error, could not save event!');
