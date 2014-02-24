@@ -34,19 +34,33 @@ namespace RoomReservation.Controllers
         [Route("api/events/room/{id}")]
         public IEnumerable<Event> GetByRoomId(int id)
         {
-            return repository.Events.Where(x => x.Room != null && x.Room.ID == id);
+            return repository.Events.Where(x => x.RoomID == id);
         }
 
         // POST api/event
-        public int Post(Event value)
+        public HttpResponseMessage Post(Event value)
         {
-            return repository.CreateEvent(value);
+            if (!ModelState.IsValid)
+			{
+				return Request.CreateResponse(HttpStatusCode.BadRequest);
+			}
+             
+            int eventID = repository.CreateEvent(value);
+
+            return Request.CreateResponse(HttpStatusCode.OK, eventID);
         }
 
         // PUT api/event/5
-        public void Put(int id, Event value)
+        public HttpResponseMessage Put(Event value)
         {
+            if (!ModelState.IsValid)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest);
+            }
+
             repository.UpdateEvent(value);
+
+            return Request.CreateResponse(HttpStatusCode.OK);
         }
 
         // DELETE api/event/5

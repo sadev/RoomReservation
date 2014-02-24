@@ -13,6 +13,6 @@ namespace RoomReservation.Domain.Entities
         public DateTime DateFrom { get; set; }
         public DateTime DateTo { get; set; }
         public string Person { get; set; }
-        public Room Room { get; set; }
+        public int RoomID { get; set; }
     }
 }
