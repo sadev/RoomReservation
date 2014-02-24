@@ -1,7 +1,7 @@
 
+USE RoomReservation
 
-
---Inserts Conference rooms. If new room  
+--Inserts Conference rooms
 begin transaction
 
 INSERT INTO Rooms ( Title ) VALUES ('Conference room 1')
