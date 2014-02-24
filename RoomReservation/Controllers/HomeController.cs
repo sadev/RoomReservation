@@ -1,4 +1,5 @@
-﻿using RoomReservation.Domain.Concrete;
+﻿using System.Data;
+using RoomReservation.Domain.Concrete;
 using RoomReservation.Domain.Entities;
 using RoomReservation.Domain.Interfaces;
 using System;
@@ -25,8 +26,10 @@ namespace RoomReservation.Controllers
             return View(rooms);
         }
 
-        public ActionResult Scheduler()
+        public ActionResult Scheduler(int id)
         {
+            ViewBag.RoomID = id;
+            ViewBag.UserName = User.Identity.Name;
             return View();
         }
     }

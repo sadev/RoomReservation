@@ -8,6 +8,9 @@
 
 <div id='calendar'></div>
 
+@Html.Hidden("hdnRoomId", (int)ViewBag.RoomID, new { @id = "hdnRoomId" })
+@Html.Hidden("hdnUserName", (string)ViewBag.UserName, new { @id = "hdnUserName" })
+
 <div>
     <div id="eventModal" class="modal fade">
         <div class="modal-dialog">
