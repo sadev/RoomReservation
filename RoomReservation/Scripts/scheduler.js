@@ -34,20 +34,10 @@ schedulerNS.calendar = (function () {
                 //$('#calendar').fullCalendar('updateEvent', event);
             },
             eventDrop: function (event, revertFunc) {
-                if (confirm("Confirm move?")) {
-                    updateEvent(event.start, event.end, event.id, event.title);
-                }
-                else {
-                    revertFunc();
-                }
+                updateEvent(event.start, event.end, event.id, event.title);
             },
             eventResize: function (event, revertFunc) {
-                if (confirm("Confirm change appointment length?")) {
-                    updateEvent(event.start, event.end, event.id, event.title);
-                }
-                else {
-                    revertFunc();
-                }
+                updateEvent(event.start, event.end, event.id, event.title);
             },
 
             events: function (start, end, timezone, callback) {
@@ -80,7 +70,7 @@ schedulerNS.calendar = (function () {
             if ($('#txtTitle').val()) {
                 if (!currentEvent.id) {
                     var newEvent = {
-                        'Title': $('#txtTitle').val(),
+                        'Title': $('#txtTitle').val() + ' - ' +  $('#hdnUserName').val(),
                         'DateFrom': currentEvent.start.format(),
                         'DateTo': currentEvent.end.format(),
                         'Person': $('#hdnUserName').val(),
@@ -109,7 +99,7 @@ schedulerNS.calendar = (function () {
 
         function updateEvent(start, end, eventId, title) {
             var event = {
-                'Title': title ? title : $('#txtTitle').val(),
+                'Title': title ? title : $('#txtTitle').val() + ' - ' + $('#hdnUserName').val(),
                 'DateFrom': start.format(),
                 'DateTo': end.format(),
                 'ID': eventId,
