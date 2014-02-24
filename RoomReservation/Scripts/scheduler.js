@@ -28,10 +28,11 @@ schedulerNS.calendar = (function () {
                 $('#eventModal').modal('toggle');
             },
             eventClick: function (event, element) {
-                currentEvent = event;
-                $('#eventModal').modal('toggle');
-                $('#txtTitle').val(event.title);
-                //$('#calendar').fullCalendar('updateEvent', event);
+                if (event.editable) {
+                    currentEvent = event;
+                    $('#eventModal').modal('toggle');
+                    $('#txtTitle').val(event.title);
+                }
             },
             eventDrop: function (event, revertFunc) {
                 updateEvent(event.start, event.end, event.id, event.title);
@@ -52,13 +53,27 @@ schedulerNS.calendar = (function () {
                     },
                     success: function (data) {
                         var events = [];
-                        $.each(data, function(key, value) {
-                            events.push({
-                                id: value.ID,
-                                title: value.Title,
-                                start: value.DateFrom,
-                                end: value.DateTo
-                            });
+                        $.each(data, function (key, value) {
+                            if ($('#hdnUserName').val() === value.Person) {
+                                events.push({
+                                    id: value.ID,
+                                    title: value.Title,
+                                    start: value.DateFrom,
+                                    end: value.DateTo,
+                                    editable: true
+                                });
+                            } else {
+                                events.push({
+                                    id: value.ID,
+                                    title: value.Title,
+                                    start: value.DateFrom,
+                                    end: value.DateTo,
+                                    editable: false, 
+                                    color: '#B5B8B8',
+                                    textColor: '#000000'
+                                });
+                            }
+             
                         });
                         callback(events);
                     }
