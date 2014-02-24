@@ -7,17 +7,20 @@
 
 @if (Request.IsAuthenticated)
 {
-    <div class="jumbotron">
-        <h1>Room Reservation</h1>
-        <p class="lead">Welcome to Conference Room Reservation Site. Please pick a room.</p>
-    </div>
+        <div class="jumbotron">
+            <h1>Room Reservation</h1>
+            <p class="lead">Welcome to Conference Room Reservation Site. Please pick a room.</p>
+        </div>
 
-    <ul class="nav nav-pills nav-stacked">
-        @foreach (var room in Model)
-        {
-            <li><button class="btn-default btn-lg" onclick="location.href='@Url.Action("Scheduler", "Home", new { id = room.ID })'">@room.Title</button></li>         
-        }
-    </ul>
+    foreach (var room in Model)
+    {
+        <div class="metro">
+            <div class="tile quadro block notice marker-on-right bg-grayLighter  text-center" onclick="location.href='@Url.Action("Scheduler", "Home", new { id = room.ID })'">
+                    <p class="subheader-secondary fg-black">@room.Title</p>
+            </div>
+        </div>
+    }
+
 }
 else
 {
