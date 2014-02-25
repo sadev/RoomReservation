@@ -26,11 +26,13 @@ schedulerNS.calendar = (function () {
                     start: start,
                     end: end
                 };
+                $('#btnDelete').hide();
                 $('#eventModal').modal('toggle');
             },
             eventClick: function (event, element) {
                 if (event.editable) {
                     currentEvent = event;
+                    $('#btnDelete').show();
                     $('#eventModal').modal('toggle');
                     $('#txtTitle').val(event.title);
                 }
@@ -135,6 +137,11 @@ schedulerNS.calendar = (function () {
         }
 
         $('#btnDelete').on('click', function () {
+            $('#eventModal').modal('toggle');
+            $('#confimationModal').modal('toggle');
+        });
+
+        $('#btnYes').on('click', function () {
             if (currentEvent.id) {
                 $.ajax({
                     type: 'DELETE',
@@ -148,6 +155,10 @@ schedulerNS.calendar = (function () {
                     }
                 });
             }
+        });
+
+        $('#btnNo').on('click', function () {
+            $('#confimationModal').modal('toggle');
         });
     }
     return {
