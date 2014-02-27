@@ -20,6 +20,7 @@ schedulerNS.calendar = (function () {
             editable: true,
             axisFormat: 'HH:mm',
             timeFormat: 'H(:mm)',
+            weekends: false,
             select: function (start, end) {
                 $('#txtTitle').val('');
                 currentEvent = {
@@ -71,15 +72,25 @@ schedulerNS.calendar = (function () {
                                     title: value.Title,
                                     start: value.DateFrom,
                                     end: value.DateTo,
-                                    editable: false, 
+                                    editable: false,
                                     color: '#B5B8B8',
                                     textColor: '#000000'
                                 });
                             }
-             
+
                         });
                         callback(events);
                     }
+                });
+            },
+            eventRender: function (event, element) {
+                element.popover({
+                    container: "body",
+                    html: true,
+                    trigger: 'hover',
+                    title: 'Reservation',
+                    placement: 'right',
+                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + $('#hdnUserName').val(),
                 });
             }
         });
@@ -88,7 +99,7 @@ schedulerNS.calendar = (function () {
             if ($('#txtTitle').val()) {
                 if (!currentEvent.id) {
                     var newEvent = {
-                        'Title': $('#txtTitle').val() + ' - ' +  $('#hdnUserName').val(),
+                        'Title': $('#txtTitle').val(),
                         'DateFrom': currentEvent.start.format(),
                         'DateTo': currentEvent.end.format(),
                         'Person': $('#hdnUserName').val(),
@@ -99,7 +110,7 @@ schedulerNS.calendar = (function () {
                         url: "/api/events",
                         data: newEvent,
                         success: function (response) {
-                            $('#calendar').fullCalendar('refetchEvents');                  
+                            $('#calendar').fullCalendar('refetchEvents');
                         },
                         error: function (xhr, textStatus, errorThrown) {
                             alert('Error, could not save event!');
@@ -115,7 +126,7 @@ schedulerNS.calendar = (function () {
 
         function updateEvent(start, end, eventId, title) {
             var event = {
-                'Title': title ? title : $('#txtTitle').val() + ' - ' + $('#hdnUserName').val(),
+                'Title': title ? title : $('#txtTitle').val(),
                 'DateFrom': start.format(),
                 'DateTo': end.format(),
                 'ID': eventId,
