@@ -22,17 +22,20 @@ schedulerNS.calendar = (function () {
             editable: true,
             axisFormat: 'HH:mm',
             timeFormat: 'H(:mm)',
+            weekends: false,
             select: function (start, end) {
                 $('#txtTitle').val('');
                 currentEvent = {
                     start: start,
                     end: end
                 };
+                $('#btnDelete').hide();
                 $('#eventModal').modal('toggle');
             },
             eventClick: function (event, element) {
                 if (event.editable) {
                     currentEvent = event;
+                    $('#btnDelete').show();
                     $('#eventModal').modal('toggle');
                     $('#txtTitle').val(event.title);
                 }
@@ -63,7 +66,8 @@ schedulerNS.calendar = (function () {
                                     title: value.Title,
                                     start: value.DateFrom,
                                     end: value.DateTo,
-                                    editable: true
+                                    editable: true,
+                                    person: value.Person
                                 });
                             } else {
                                 events.push({
@@ -73,13 +77,24 @@ schedulerNS.calendar = (function () {
                                     end: value.DateTo,
                                     editable: false,
                                     color: '#B5B8B8',
-                                    textColor: '#000000'
+                                    textColor: '#000000',
+                                    person: value.Person
                                 });
                             }
 
                         });
                         callback(events);
                     }
+                });
+            },
+            eventRender: function (event, element) {
+                element.popover({
+                    container: "body",
+                    html: true,
+                    trigger: 'hover',
+                    title: 'Reservation',
+                    placement: 'right',
+                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person,
                 });
             }
         });
@@ -115,7 +130,7 @@ schedulerNS.calendar = (function () {
 
         function updateEvent(start, end, eventId, title) {
             var event = {
-                'Title': title ? title : $('#txtTitle').val() + ' - ' + $('#hdnUserName').val(),
+                'Title': title ? title : $('#txtTitle').val(),
                 'DateFrom': start.format(),
                 'DateTo': end.format(),
                 'ID': eventId,
@@ -137,6 +152,11 @@ schedulerNS.calendar = (function () {
         }
 
         $('#btnDelete').on('click', function () {
+            $('#eventModal').modal('toggle');
+            $('#confimationModal').modal('toggle');
+        });
+
+        $('#btnYes').on('click', function () {
             if (currentEvent.id) {
                 $.ajax({
                     type: 'DELETE',
@@ -150,6 +170,10 @@ schedulerNS.calendar = (function () {
                     }
                 });
             }
+        });
+
+        $('#btnNo').on('click', function () {
+            $('#confimationModal').modal('toggle');
         });
     }
     return {
