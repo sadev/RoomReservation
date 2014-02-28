@@ -103,7 +103,7 @@ schedulerNS.calendar = (function () {
             if ($('#txtTitle').val()) {
                 if (!currentEvent.id) {
                     var newEvent = {
-                        'Title': $('#txtTitle').val() + ' - ' + $('#hdnUserName').val(),
+                        'Title': $('#txtTitle').val(),
                         'DateFrom': currentEvent.start.format(),
                         'DateTo': currentEvent.end.format(),
                         'Person': $('#hdnUserName').val(),

@@ -10,6 +10,7 @@ using System.Web.Http;
 
 namespace RoomReservation.Controllers
 {
+    [Authorize]
     public class EventsController : ApiController
     {
          IReservationRepository repository;

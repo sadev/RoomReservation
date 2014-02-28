@@ -26,6 +26,7 @@ namespace RoomReservation.Controllers
             return View(rooms);
         }
 
+        [Authorize]
         public ActionResult Scheduler(int id)
         {
             ViewBag.RoomID = id;
