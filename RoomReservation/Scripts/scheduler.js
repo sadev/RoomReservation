@@ -1,5 +1,7 @@
 ﻿var schedulerNS = schedulerNS || {};
 
+var urlReferrer = window.location.href.substring(0, window.location.href.indexOf("Home"));
+
 schedulerNS.calendar = (function () {
 
     var currentEvent = null;
@@ -45,7 +47,7 @@ schedulerNS.calendar = (function () {
             events: function (start, end, timezone, callback) {
                 $.ajax({
                     type: 'GET',
-                    url: '/api/events/room/' + $('#hdnRoomId').val(),
+                    url: urlReferrer + 'api/events/room/' + $('#hdnRoomId').val(),
                     dataType: 'json',
                     contentType: 'application/json',
                     data: {
@@ -69,12 +71,12 @@ schedulerNS.calendar = (function () {
                                     title: value.Title,
                                     start: value.DateFrom,
                                     end: value.DateTo,
-                                    editable: false, 
+                                    editable: false,
                                     color: '#B5B8B8',
                                     textColor: '#000000'
                                 });
                             }
-             
+
                         });
                         callback(events);
                     }
@@ -86,7 +88,7 @@ schedulerNS.calendar = (function () {
             if ($('#txtTitle').val()) {
                 if (!currentEvent.id) {
                     var newEvent = {
-                        'Title': $('#txtTitle').val() + ' - ' +  $('#hdnUserName').val(),
+                        'Title': $('#txtTitle').val() + ' - ' + $('#hdnUserName').val(),
                         'DateFrom': currentEvent.start.format(),
                         'DateTo': currentEvent.end.format(),
                         'Person': $('#hdnUserName').val(),
@@ -94,10 +96,10 @@ schedulerNS.calendar = (function () {
                     };
                     $.ajax({
                         type: 'POST',
-                        url: "/api/events",
+                        url: urlReferrer + "api/events",
                         data: newEvent,
                         success: function (response) {
-                            $('#calendar').fullCalendar('refetchEvents');                  
+                            $('#calendar').fullCalendar('refetchEvents');
                         },
                         error: function (xhr, textStatus, errorThrown) {
                             alert('Error, could not save event!');
@@ -123,13 +125,13 @@ schedulerNS.calendar = (function () {
 
             $.ajax({
                 type: 'PUT',
-                url: '/api/events/' + $('#hdnRoomId').val(),
+                url: urlReferrer + 'api/events/' + $('#hdnRoomId').val(),
                 data: event,
                 success: function () {
                     $('#calendar').fullCalendar('refetchEvents');
                 },
                 error: function (xhr, textStatus, errorThrown) {
-                    alert('Error, could not save event!');
+                    //alert('Error, could not save event!');
                 }
             });
         }
@@ -138,13 +140,13 @@ schedulerNS.calendar = (function () {
             if (currentEvent.id) {
                 $.ajax({
                     type: 'DELETE',
-                    url: '/api/events/' + currentEvent.id,
+                    url: urlReferrer + 'api/events/' + currentEvent.id,
                     success: function () {
                         $('#calendar').fullCalendar('removeEvents', currentEvent.id);
                         $('#calendar').fullCalendar('rerenderEvents');
                     },
                     error: function (xhr, textStatus, errorThrown) {
-                        alert('Error, could not delete event!');
+                        //alert('Error, could not delete event!');
                     }
                 });
             }
