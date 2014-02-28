@@ -64,7 +64,8 @@ schedulerNS.calendar = (function () {
                                     title: value.Title,
                                     start: value.DateFrom,
                                     end: value.DateTo,
-                                    editable: true
+                                    editable: true,
+                                    person: value.Person
                                 });
                             } else {
                                 events.push({
@@ -74,7 +75,8 @@ schedulerNS.calendar = (function () {
                                     end: value.DateTo,
                                     editable: false,
                                     color: '#B5B8B8',
-                                    textColor: '#000000'
+                                    textColor: '#000000',
+                                    person: value.Person
                                 });
                             }
 
@@ -90,7 +92,7 @@ schedulerNS.calendar = (function () {
                     trigger: 'hover',
                     title: 'Reservation',
                     placement: 'right',
-                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + $('#hdnUserName').val(),
+                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person,
                 });
             }
         });
