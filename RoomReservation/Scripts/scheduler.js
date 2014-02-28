@@ -88,6 +88,10 @@ schedulerNS.calendar = (function () {
                 });
             },
             eventRender: function (event, element) {
+                $('.popover').remove();
+            },
+
+            eventAfterRender: function (event, element, view) {
                 element.popover({
                     container: "body",
                     html: true,
