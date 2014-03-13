@@ -5658,6 +5658,11 @@ body.modal-open,
   background-clip: padding-box;
 }
 
+/*.modal-content {
+  width: 800px;
+  margin-left: -130px;
+}*/
+
 .modal-backdrop {
   position: fixed;
   top: 0;

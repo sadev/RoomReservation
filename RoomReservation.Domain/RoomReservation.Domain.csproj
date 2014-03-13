@@ -49,6 +49,7 @@
     <Compile Include="Concrete\EFDbContext.cs" />
     <Compile Include="Concrete\ReservationRepository.cs" />
     <Compile Include="Entities\Event.cs" />
+    <Compile Include="Entities\RepeatConfig.cs" />
     <Compile Include="Entities\Room.cs" />
     <Compile Include="Interfaces\IReservationRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

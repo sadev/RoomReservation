@@ -10,13 +10,13 @@ namespace RoomReservation.Domain.Concrete
 {
     public class ReservationRepository : IReservationRepository
     {
-        EFDbContext context = new EFDbContext();
+        private readonly EFDbContext _context = new EFDbContext();
 
         public IQueryable<Entities.Event> Events
         {
             get 
             {
-                return context.Events;
+                return _context.Events;
             }
         }
 
@@ -24,28 +24,55 @@ namespace RoomReservation.Domain.Concrete
         {
             get
             {
-                return context.Rooms;
+                return _context.Rooms;
+            }
+        }
+
+        public IQueryable<RepeatConfig> RepeatConfigs {
+            get
+            {
+                return _context.RepeatConfigs;
             }
         }
 
         public int CreateEvent(Entities.Event entity)
         {
-            context.Events.Add(entity);
-            context.SaveChanges();
+            _context.Events.Add(entity);
+            _context.SaveChanges();
 
             return entity.ID;
         }
 
         public void UpdateEvent(Entities.Event entity)
         {
-            context.Entry(entity).State = System.Data.Entity.EntityState.Modified;
-            context.SaveChanges();
+            _context.Entry(entity).State = System.Data.Entity.EntityState.Modified;
+            _context.SaveChanges();
         }
 
         public void DeleteEvent(Entities.Event entity)
         {
-            context.Events.Remove(entity);
-            context.SaveChanges();
+            _context.Events.Remove(entity);
+            _context.SaveChanges();
+        }
+
+        public int CreateRepeatConfig(RepeatConfig entity)
+        {
+            _context.RepeatConfigs.Add(entity);
+            _context.SaveChanges();
+
+            return entity.ID;
+        }
+
+        public void UpdateRepeatConfig(RepeatConfig entity)
+        {
+            _context.Entry(entity).State = System.Data.Entity.EntityState.Modified;
+            _context.SaveChanges();
+        }
+
+        public void DeleteRepeatConfig(RepeatConfig entity)
+        {
+            _context.RepeatConfigs.Remove(entity);
+            _context.SaveChanges();
         }
     }
 }

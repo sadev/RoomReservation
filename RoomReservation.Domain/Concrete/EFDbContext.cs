@@ -16,5 +16,6 @@ namespace RoomReservation.Domain.Concrete
 
         public DbSet<Event> Events { get; set; }
         public DbSet<Room> Rooms { get; set; }
+        public DbSet<RepeatConfig> RepeatConfigs { get; set; }
     }
 }

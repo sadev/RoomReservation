@@ -11,9 +11,13 @@ namespace RoomReservation.Domain.Interfaces
     {
         IQueryable<Event> Events { get; }
         IQueryable<Room> Rooms { get; }
+        IQueryable<RepeatConfig> RepeatConfigs { get; }
 
         int CreateEvent(Event entity);
         void UpdateEvent(Event entity);
         void DeleteEvent(Event entity);
+        int CreateRepeatConfig(RepeatConfig entity);
+        void UpdateRepeatConfig(RepeatConfig entity);
+        void DeleteRepeatConfig(RepeatConfig entity);
     }
 }

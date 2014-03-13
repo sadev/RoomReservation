@@ -30,14 +30,60 @@ schedulerNS.calendar = (function () {
                     end: end
                 };
                 $('#btnDelete').hide();
+                $('#btnDeleteAll').hide();
                 $('#eventModal').modal('toggle');
+                $('#txtTitle').tooltip('disable')
+                              .removeClass('input-validation-error');
+                resetRepeatingForm();
             },
             eventClick: function (event, element) {
+                resetRepeatingForm();
                 if (event.editable) {
                     currentEvent = event;
-                    $('#btnDelete').show();
+                    if (currentEvent.repeatConfigId !== -999) {
+                        $.ajax({
+                            type: 'GET',
+                            url: urlReferrer + 'api/events/repeatconfig/' + currentEvent.repeatConfigId,
+                            dataType: 'json',
+                            contentType: 'application/json',
+                            success: function (response) {
+                                $('#repeatingEventForm').show();
+                                $("#cbRepeatingEvent").prop('checked', true);
+                                $('#slcRepeat').val(response.RepeatType);
+                                if ($('#slcRepeat').val() === 'weekly') {
+                                    $('#divDaysOfWeek input[type=checkbox]').each(function () {
+                                        var that = this;
+                                        var days=response.RepeatsOn.split(',');
+                                        for (var i in days) {
+                                            if ($(that).val() === days[i]) {
+                                                $(that).prop('checked', true);
+                                            }
+                                        }
+                                    });
+                                    $('#grpRepeatEvery').show();
+                                } else {
+                                    $('#divDaysOfWeek').hide();
+                                    $('#grpRepeatEvery').hide();
+                                }
+                                $('#slcRepeatEvery').val(response.RepeatEvery);
+                                $("#dtEnds-input").val(moment(response.RepeatUntil).format('MM/DD/YYYY'));
+                                //$('#eventModal').modal('toggle');
+                            },
+                            error: function (xhr, textStatus, errorThrown) {
+                                alert('Error, could not save event!');
+                            }
+                        });
+                        $('#btnDeleteAll').show();
+                        $('#btnDelete').show();
+                    } else {
+                        $('#btnDelete').show();
+                        $('#btnDeleteAll').hide();
+                    }
+                   
                     $('#eventModal').modal('toggle');
-                    $('#txtTitle').val(event.title);
+                    $('#txtTitle').val(event.title)
+                                  .tooltip('disable')
+                                  .removeClass('input-validation-error');
                 }
             },
             eventDrop: function (event, revertFunc) {
@@ -67,7 +113,8 @@ schedulerNS.calendar = (function () {
                                     start: value.DateFrom,
                                     end: value.DateTo,
                                     editable: true,
-                                    person: value.Person
+                                    person: value.Person,
+                                    repeatConfigId: value.RepeatConfigID
                                 });
                             } else {
                                 events.push({
@@ -78,7 +125,8 @@ schedulerNS.calendar = (function () {
                                     editable: false,
                                     color: '#B5B8B8',
                                     textColor: '#000000',
-                                    person: value.Person
+                                    person: value.Person,
+                                    repeatConfigId: value.RepeatConfigID
                                 });
                             }
 
@@ -103,33 +151,92 @@ schedulerNS.calendar = (function () {
             }
         });
 
+        function resetRepeatingForm() {
+            $("#cbRepeatingEvent").prop('checked', false);
+            $('#slcRepeat').val('weekly');
+            $('#divDaysOfWeek').show();
+            $('#slcRepeatEvery').val('1');
+            $("#dtEnds-input").val(moment().add('months', 1).format('MM/DD/YYYY'));
+            $('#divDaysOfWeek input:checked').each(function () {
+                $(this).prop('checked', false);
+            });
+            $('#repeatingEventForm').hide();
+            $('#grpRepeatEvery').show();
+        }
+
         $('#btnSave').on('click', function () {
             if ($('#txtTitle').val()) {
-                if (!currentEvent.id) {
-                    var newEvent = {
-                        'Title': $('#txtTitle').val(),
-                        'DateFrom': currentEvent.start.format(),
-                        'DateTo': currentEvent.end.format(),
-                        'Person': $('#hdnUserName').val(),
-                        'RoomID': $('#hdnRoomId').val(),
+                if (!$('#cbRepeatingEvent').is(":checked")) {
+                    if (!currentEvent.id) {
+                        var newEvent = {
+                            'Title': $('#txtTitle').val(),
+                            'DateFrom': currentEvent.start.format(),
+                            'DateTo': currentEvent.end.format(),
+                            'Person': $('#hdnUserName').val(),
+                            'RoomID': $('#hdnRoomId').val(),
+                            'RepeatConfigID': '-999'
+                        };
+                        $.ajax({
+                            type: 'POST',
+                            url: urlReferrer + "api/events",
+                            data: newEvent,
+                            success: function (response) {
+                                $('#calendar').fullCalendar('refetchEvents');
+                            },
+                            error: function (xhr, textStatus, errorThrown) {
+                                alert('Error, could not save event!');
+                            }
+                        });
+                    } else {
+                        updateEvent(currentEvent.start, currentEvent.end, currentEvent.id);
+                    }
+                } else {
+                    var repeatsOn=[];
+                    $('#divDaysOfWeek input:checked').each(function () {
+                         repeatsOn.push($(this).val());
+                    });
+                    if ($('#slcRepeat').val() === 'weekly' && $('#divDaysOfWeek input:checked').length < 1) {
+                             //Business rule, needs to be handled
+                    }
+                    var result = {
+                        RepeatingID: currentEvent.id ? currentEvent.repeatConfigId : '-999',
+                        RepeatType: $('#slcRepeat').val(),
+                        RepeatEvery: $('#slcRepeatEvery').val(),
+                        RepeatsOn: repeatsOn,
+                        RepeatUntil: $("#dtEnds-input").val(),
+                        StartDate: currentEvent.start.format('MM/DD/YYYY HH:mm'),
+                        EndDate: currentEvent.end.format('HH:mm'),
+                        Title: $('#txtTitle').val(),
+                        Person: $('#hdnUserName').val(),
+                        RoomId: $('#hdnRoomId').val()
                     };
                     $.ajax({
                         type: 'POST',
-                        url: urlReferrer + "api/events",
-                        data: newEvent,
+                        url: urlReferrer + 'api/events/repeatconfig',
+                        //dataType: 'json',
+                        contentType: 'application/json',
+                        data: JSON.stringify(result),
                         success: function (response) {
                             $('#calendar').fullCalendar('refetchEvents');
                         },
                         error: function (xhr, textStatus, errorThrown) {
-                            alert('Error, could not save event!');
+                            alert('Error, could not save events!');
                         }
-
                     });
-                } else {
-                    updateEvent(currentEvent.start, currentEvent.end, currentEvent.id);
+        
                 }
                 $('#eventModal').modal('toggle');
+            } else {
+                $('#txtTitle').tooltip('destroy')
+                  .attr('title', 'Please enter event title')
+                  .addClass('input-validation-error')
+                  .tooltip('show');
             }
+        });
+
+        $('#txtTitle').keypress(function () {
+            $(this).tooltip('disable')
+                   .removeClass('input-validation-error');
         });
 
         function updateEvent(start, end, eventId, title) {
@@ -140,6 +247,7 @@ schedulerNS.calendar = (function () {
                 'ID': eventId,
                 'Person': $('#hdnUserName').val(),
                 'RoomID': $('#hdnRoomId').val(),
+                'RepeatConfigID': '-999'
             };
 
             $.ajax({
@@ -150,17 +258,12 @@ schedulerNS.calendar = (function () {
                     $('#calendar').fullCalendar('refetchEvents');
                 },
                 error: function (xhr, textStatus, errorThrown) {
-                    //alert('Error, could not save event!');
+                    alert('Error, could not save event!');
                 }
             });
         }
 
         $('#btnDelete').on('click', function () {
-            $('#eventModal').modal('toggle');
-            $('#confimationModal').modal('toggle');
-        });
-
-        $('#btnYes').on('click', function () {
             if (currentEvent.id) {
                 $.ajax({
                     type: 'DELETE',
@@ -170,14 +273,79 @@ schedulerNS.calendar = (function () {
                         $('#calendar').fullCalendar('rerenderEvents');
                     },
                     error: function (xhr, textStatus, errorThrown) {
-                        //alert('Error, could not delete event!');
+                        alert('Error, could not delete event!');
                     }
                 });
             }
+            $('#eventModal').modal('toggle');
+           // $('#confimationModal').modal('toggle');
         });
 
-        $('#btnNo').on('click', function () {
-            $('#confimationModal').modal('toggle');
+        $('#btnDeleteAll').on('click', function () {
+            if (currentEvent.id) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: urlReferrer + 'api/events/repeatconfig/' + currentEvent.repeatConfigId,
+                    success: function () {
+                        $('#calendar').fullCalendar('refetchEvents');
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert('Error, could not delete event!');
+                    }
+                });
+            }
+            $('#eventModal').modal('toggle');
+            // $('#confimationModal').modal('toggle');
+        });
+
+        //$('#btnYes').on('click', function () {
+        //    if (currentEvent.id) {
+        //        $.ajax({
+        //            type: 'DELETE',
+        //            url: urlReferrer + 'api/events/' + currentEvent.id,
+        //            success: function () {
+        //                $('#calendar').fullCalendar('removeEvents', currentEvent.id);
+        //                $('#calendar').fullCalendar('rerenderEvents');
+        //            },
+        //            error: function (xhr, textStatus, errorThrown) {
+        //                alert('Error, could not delete event!');
+        //            }
+        //        });
+        //    }
+        //});
+
+        $("#cbRepeatingEvent").change(function () {
+            if (this.checked) {
+                $('#repeatingEventForm').show();
+                var day = moment(currentEvent.start).day();
+                $('#divDaysOfWeek input[type=checkbox]').each(function () {
+                    if ($(this).val() === day.toString()) {
+                        $(this).prop('checked', true);
+                    }
+                    
+                });
+            } else {
+                $('#repeatingEventForm').hide();
+            }
+        });
+
+        $('#slcRepeat').on('change', function () {
+            if (this.value === 'weekly') {
+                $('#divDaysOfWeek').show();
+                $('#grpRepeatEvery').show();
+            } else {
+                $('#divDaysOfWeek').hide();
+                $('#grpRepeatEvery').hide();
+                
+            }
+        });
+
+        //$('#btnNo').on('click', function () {
+        //    $('#confimationModal').modal('toggle');
+        //});
+
+        $('#eventModal').on('shown.bs.modal', function () {
+            $('#txtTitle').focus();
         });
     }
     return {

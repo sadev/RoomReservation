@@ -14,5 +14,6 @@ namespace RoomReservation.Domain.Entities
         public DateTime DateTo { get; set; }
         public string Person { get; set; }
         public int RoomID { get; set; }
+        public int RepeatConfigID { get; set; }
     }
 }

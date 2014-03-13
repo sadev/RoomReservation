@@ -30,7 +30,8 @@ namespace RoomReservation
             bundles.Add(new ScriptBundle("~/bundles/bootstrap").Include(
                       "~/Scripts/bootstrap.js",
                       "~/Scripts/metro.min.js",
-                      "~/Scripts/respond.js"));
+                      "~/Scripts/respond.js",
+                      "~/Scripts/bootstrap-datetimepicker.js"));
 
             bundles.Add(new ScriptBundle("~/bundles/metro").Include(
                       "~/Scripts/metro.min.js"));
@@ -39,7 +40,9 @@ namespace RoomReservation
                       "~/Content/bootstrap.css",
                       "~/Content/site.css",
                       "~/Content/metro-bootstrap.css",
-                      "~/Content/fullcalendar.css"));
+                      "~/Content/fullcalendar.css",
+                      "~/Content/bootstrap-datetimepicker.css",
+                      "~/Content/font-awesome.css"));
         }
     }
 }
