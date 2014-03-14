@@ -6,12 +6,13 @@ schedulerNS.calendar = (function () {
 
     var currentEvent = null;
 
+    //Calendar setup
     function setupCalendar() {
         $('#calendar').fullCalendar({
             header: {
-                left: 'prev,next today',
+                left: 'prev,next,today',
                 center: 'title',
-                right: 'agendaWeek,agendaDay'
+                right: 'month,agendaWeek,agendaDay'
             },
             //defaultDate: '2014-01-12',
             allDaySlot: false,
@@ -22,6 +23,7 @@ schedulerNS.calendar = (function () {
             editable: true,
             axisFormat: 'HH:mm',
             timeFormat: 'H(:mm)',
+            minTime: '08:00',
             weekends: false,
             select: function (start, end) {
                 $('#txtTitle').val('');
@@ -29,12 +31,12 @@ schedulerNS.calendar = (function () {
                     start: start,
                     end: end
                 };
+                resetRepeatingForm();
+                checkSelectedDays(moment(currentEvent.start).day());
+                $('#calendar').fullCalendar('unselect');
                 $('#btnDelete').hide();
                 $('#btnDeleteAll').hide();
                 $('#eventModal').modal('toggle');
-                $('#txtTitle').tooltip('disable')
-                              .removeClass('input-validation-error');
-                resetRepeatingForm();
             },
             eventClick: function (event, element) {
                 resetRepeatingForm();
@@ -53,7 +55,7 @@ schedulerNS.calendar = (function () {
                                 if ($('#slcRepeat').val() === 'weekly') {
                                     $('#divDaysOfWeek input[type=checkbox]').each(function () {
                                         var that = this;
-                                        var days=response.RepeatsOn.split(',');
+                                        var days = response.RepeatsOn.split(',');
                                         for (var i in days) {
                                             if ($(that).val() === days[i]) {
                                                 $(that).prop('checked', true);
@@ -76,14 +78,13 @@ schedulerNS.calendar = (function () {
                         $('#btnDeleteAll').show();
                         $('#btnDelete').show();
                     } else {
+                        checkSelectedDays(moment(currentEvent.start).day());
                         $('#btnDelete').show();
                         $('#btnDeleteAll').hide();
                     }
-                   
+                    $("#cbRepeatingEvent").prop('disabled', true);
                     $('#eventModal').modal('toggle');
-                    $('#txtTitle').val(event.title)
-                                  .tooltip('disable')
-                                  .removeClass('input-validation-error');
+                    $('#txtTitle').val(event.title);
                 }
             },
             eventDrop: function (event, revertFunc) {
@@ -92,7 +93,18 @@ schedulerNS.calendar = (function () {
             eventResize: function (event, revertFunc) {
                 updateEvent(event.start, event.end, event.id, event.title);
             },
-
+            viewRender: function(view, element) {
+                if (view.name === 'month') {
+                    view.calendar.options.selectable = false;
+                    view.calendar.options.selectHelper = false;
+                    view.calendar.options.editable = false;
+                } else {
+                    view.calendar.options.selectable = true;
+                    view.calendar.options.selectHelper = true;
+                    view.calendar.options.editable = true;
+                }
+                $('#calendar').fullCalendar('refetchEvents');
+            },
             events: function (start, end, timezone, callback) {
                 $.ajax({
                     type: 'GET',
@@ -135,7 +147,15 @@ schedulerNS.calendar = (function () {
                     }
                 });
             },
-            eventRender: function (event, element) {
+            
+            eventRender: function (event, element, view) {
+                if (view.name === 'month') {
+                    event.editable = false;
+                } else {
+                    if ($('#hdnUserName').val() === event.person) {
+                        event.editable = true;
+                    }   
+                }
                 $('.popover').remove();
             },
 
@@ -151,21 +171,9 @@ schedulerNS.calendar = (function () {
             }
         });
 
-        function resetRepeatingForm() {
-            $("#cbRepeatingEvent").prop('checked', false);
-            $('#slcRepeat').val('weekly');
-            $('#divDaysOfWeek').show();
-            $('#slcRepeatEvery').val('1');
-            $("#dtEnds-input").val(moment().add('months', 1).format('MM/DD/YYYY'));
-            $('#divDaysOfWeek input:checked').each(function () {
-                $(this).prop('checked', false);
-            });
-            $('#repeatingEventForm').hide();
-            $('#grpRepeatEvery').show();
-        }
-
+        //jQuery events
         $('#btnSave').on('click', function () {
-            if ($('#txtTitle').val()) {
+            if (validateForm()) {
                 if (!$('#cbRepeatingEvent').is(":checked")) {
                     if (!currentEvent.id) {
                         var newEvent = {
@@ -190,14 +198,12 @@ schedulerNS.calendar = (function () {
                     } else {
                         updateEvent(currentEvent.start, currentEvent.end, currentEvent.id);
                     }
+                    $('#eventModal').modal('toggle');
                 } else {
-                    var repeatsOn=[];
+                    var repeatsOn = [];
                     $('#divDaysOfWeek input:checked').each(function () {
-                         repeatsOn.push($(this).val());
+                        repeatsOn.push($(this).val());
                     });
-                    if ($('#slcRepeat').val() === 'weekly' && $('#divDaysOfWeek input:checked').length < 1) {
-                             //Business rule, needs to be handled
-                    }
                     var result = {
                         RepeatingID: currentEvent.id ? currentEvent.repeatConfigId : '-999',
                         RepeatType: $('#slcRepeat').val(),
@@ -213,7 +219,6 @@ schedulerNS.calendar = (function () {
                     $.ajax({
                         type: 'POST',
                         url: urlReferrer + 'api/events/repeatconfig',
-                        //dataType: 'json',
                         contentType: 'application/json',
                         data: JSON.stringify(result),
                         success: function (response) {
@@ -223,21 +228,166 @@ schedulerNS.calendar = (function () {
                             alert('Error, could not save events!');
                         }
                     });
-        
+                    $('#eventModal').modal('toggle');
                 }
-                $('#eventModal').modal('toggle');
-            } else {
-                $('#txtTitle').tooltip('destroy')
-                  .attr('title', 'Please enter event title')
-                  .addClass('input-validation-error')
-                  .tooltip('show');
             }
         });
 
         $('#txtTitle').keypress(function () {
-            $(this).tooltip('disable')
-                   .removeClass('input-validation-error');
+            $(this).closest('.form-group').removeClass('has-error');
+            $("#titleSpan").css("display", "none");
         });
+
+        $("#divDaysOfWeek input[type=checkbox]").click(function () {
+            $('#divDaysOfWeek').closest('.form-group').removeClass('has-error');
+            $("#daysSpan").css("display", "none");
+        });
+
+        $('#btnDelete').on('click', function () {
+            if (currentEvent.id) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: urlReferrer + 'api/events/' + currentEvent.id,
+                    success: function () {
+                        $('#calendar').fullCalendar('removeEvents', currentEvent.id);
+                        $('#calendar').fullCalendar('rerenderEvents');
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert('Error, could not delete event!');
+                    }
+                });
+            }
+            $('#eventModal').modal('toggle');
+        });
+
+        $('#btnDeleteAll').on('click', function () {
+            if (currentEvent.id) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: urlReferrer + 'api/events/repeatconfig/' + currentEvent.repeatConfigId,
+                    success: function () {
+                        $('#calendar').fullCalendar('refetchEvents');
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert('Error, could not delete event!');
+                    }
+                });
+            }
+            $('#eventModal').modal('toggle');
+        });
+
+        $("#cbRepeatingEvent").change(function () {
+            if (this.checked) {
+                $('#repeatingEventForm').show();
+                var dayChecked = moment(currentEvent.start).day();
+                $('#divDaysOfWeek input[type=checkbox]').each(function () {
+                    if ($(this).val() === dayChecked.toString()) {
+                        $(this).prop('checked', true);
+                    }
+                });
+            } else {
+                $('#slcRepeat').val('weekly');
+                $('#divDaysOfWeek').show();
+                $('#slcRepeatEvery').val('1');
+                $("#dtEnds-input").val(moment().add('months', 1).format('MM/DD/YYYY'));
+                checkSelectedDays(moment(currentEvent.start).day());
+                resetValidation();
+                $('#repeatingEventForm').hide();
+                $('#grpRepeatEvery').show();
+            }
+        });
+
+        $('#slcRepeat').on('change', function () {
+            if (this.value === 'weekly') {
+                $('#divDaysOfWeek').show();
+                $('#grpRepeatEvery').show();
+                var day = moment(currentEvent.start).day();
+                $('#divDaysOfWeek input[type=checkbox]').each(function () {
+                    if ($(this).val() === day.toString()) {
+                        $(this).prop('checked', true);
+                    }
+                });
+            } else {
+                $('#divDaysOfWeek').hide();
+                $('#grpRepeatEvery').hide();
+                $('#divDaysOfWeek').closest('.form-group').removeClass('has-error');
+                $("#daysSpan").css("display", "none");
+            }
+        });
+
+        $('#dtEnds').keypress(function () {
+            $('#dtEnds-input').closest('.form-group').removeClass('has-error');
+            $("#dateSpan").css("display", "none");
+        });
+
+        $('#dtEnds').on('change.dp', function () {
+            $('#dtEnds-input').closest('.form-group').removeClass('has-error');
+            $("#dateSpan").css("display", "none");
+        });
+
+        //Helper functions
+        function checkSelectedDays(day) {
+            $('#divDaysOfWeek input[type=checkbox]').each(function () {
+                if ($(this).val() === day.toString()) {
+                    $(this).prop('checked', true);
+                }
+            });
+        }
+ 
+        function resetValidation() {
+            $('#txtTitle').closest('.form-group').removeClass('has-error');
+            $("#titleSpan").css("display", "none");
+            $('#divDaysOfWeek').closest('.form-group').removeClass('has-error');
+            $("#daysSpan").css("display", "none");
+            $('#dtEnds-input').closest('.form-group').removeClass('has-error');
+            $("#dateSpan").css("display", "none");
+        }
+
+        function resetRepeatingForm() {
+            $("#cbRepeatingEvent").prop('disabled', false);
+            $("#cbRepeatingEvent").prop('checked', false);
+            $('#slcRepeat').val('weekly');
+            $('#divDaysOfWeek').show();
+            $('#slcRepeatEvery').val('1');
+            $("#dtEnds-input").val(moment().add('months', 1).format('MM/DD/YYYY'));
+            $('#divDaysOfWeek input:checked').each(function () {
+                $(this).prop('checked', false);
+            });
+            resetValidation();
+            $('#repeatingEventForm').hide();
+            $('#grpRepeatEvery').show();
+        }
+
+        function validateForm() {
+            var result = true;
+            if (!$('#txtTitle').val()) {
+                $('#txtTitle').closest('.form-group').addClass('has-error');
+                $("#titleSpan").css("display", "block");
+                result = false;
+            }
+            if ($('#slcRepeat').val() === 'weekly' && $('#divDaysOfWeek input:checked').length < 1) {
+                $('#divDaysOfWeek').closest('.form-group').addClass('has-error');
+                $("#daysSpan").css("display", "block");
+                result = false;
+            }
+            if (!$("#dtEnds-input").val()) {
+                $('#dtEnds-input').closest('.form-group').addClass('has-error');
+                $("#dateSpan").css("display", "block");
+                $("#dateSpan").text('Date is required');
+                result = false;
+            } else if (!validateDate($("#dtEnds-input").val())) {
+                $('#dtEnds-input').closest('.form-group').addClass('has-error');
+                $("#dateSpan").css("display", "block");
+                $("#dateSpan").text('Date is not valid');
+                result = false;
+            }
+            return result;
+        }
+
+        function validateDate(date) {
+            var dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/;
+            return dateRegex.test(date);
+        }
 
         function updateEvent(start, end, eventId, title) {
             var event = {
@@ -262,91 +412,6 @@ schedulerNS.calendar = (function () {
                 }
             });
         }
-
-        $('#btnDelete').on('click', function () {
-            if (currentEvent.id) {
-                $.ajax({
-                    type: 'DELETE',
-                    url: urlReferrer + 'api/events/' + currentEvent.id,
-                    success: function () {
-                        $('#calendar').fullCalendar('removeEvents', currentEvent.id);
-                        $('#calendar').fullCalendar('rerenderEvents');
-                    },
-                    error: function (xhr, textStatus, errorThrown) {
-                        alert('Error, could not delete event!');
-                    }
-                });
-            }
-            $('#eventModal').modal('toggle');
-           // $('#confimationModal').modal('toggle');
-        });
-
-        $('#btnDeleteAll').on('click', function () {
-            if (currentEvent.id) {
-                $.ajax({
-                    type: 'DELETE',
-                    url: urlReferrer + 'api/events/repeatconfig/' + currentEvent.repeatConfigId,
-                    success: function () {
-                        $('#calendar').fullCalendar('refetchEvents');
-                    },
-                    error: function (xhr, textStatus, errorThrown) {
-                        alert('Error, could not delete event!');
-                    }
-                });
-            }
-            $('#eventModal').modal('toggle');
-            // $('#confimationModal').modal('toggle');
-        });
-
-        //$('#btnYes').on('click', function () {
-        //    if (currentEvent.id) {
-        //        $.ajax({
-        //            type: 'DELETE',
-        //            url: urlReferrer + 'api/events/' + currentEvent.id,
-        //            success: function () {
-        //                $('#calendar').fullCalendar('removeEvents', currentEvent.id);
-        //                $('#calendar').fullCalendar('rerenderEvents');
-        //            },
-        //            error: function (xhr, textStatus, errorThrown) {
-        //                alert('Error, could not delete event!');
-        //            }
-        //        });
-        //    }
-        //});
-
-        $("#cbRepeatingEvent").change(function () {
-            if (this.checked) {
-                $('#repeatingEventForm').show();
-                var day = moment(currentEvent.start).day();
-                $('#divDaysOfWeek input[type=checkbox]').each(function () {
-                    if ($(this).val() === day.toString()) {
-                        $(this).prop('checked', true);
-                    }
-                    
-                });
-            } else {
-                $('#repeatingEventForm').hide();
-            }
-        });
-
-        $('#slcRepeat').on('change', function () {
-            if (this.value === 'weekly') {
-                $('#divDaysOfWeek').show();
-                $('#grpRepeatEvery').show();
-            } else {
-                $('#divDaysOfWeek').hide();
-                $('#grpRepeatEvery').hide();
-                
-            }
-        });
-
-        //$('#btnNo').on('click', function () {
-        //    $('#confimationModal').modal('toggle');
-        //});
-
-        $('#eventModal').on('shown.bs.modal', function () {
-            $('#txtTitle').focus();
-        });
     }
     return {
         setupCalendar: setupCalendar

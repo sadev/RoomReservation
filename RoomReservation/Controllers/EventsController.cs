@@ -69,6 +69,12 @@ namespace RoomReservation.Controllers
                 };
                 repository.UpdateRepeatConfig(config);
                 var events = repository.Events.Where(e => e.RepeatConfigID == config.ID);
+                if (events.Any())
+                {
+                    Event eEvent = events.OrderBy(t => t.DateFrom)
+                        .FirstOrDefault();
+                    if (eEvent != null) repeating.StartDate = eEvent.DateFrom;
+                }
                 foreach (Event eEvent in events)
                 {
                     repository.DeleteEvent(eEvent);
@@ -88,12 +94,12 @@ namespace RoomReservation.Controllers
         [HttpDelete]
         public void DeleteEvents(int id)
         {
-            var events = repository.Events.Where(e => e.RepeatConfigID ==id);
+            var events = repository.Events.Where(e => e.RepeatConfigID == id);
             foreach (Event eEvent in events)
             {
                 repository.DeleteEvent(eEvent);
             }
-            var config = repository.RepeatConfigs.FirstOrDefault(e => e.ID== id);
+            var config = repository.RepeatConfigs.FirstOrDefault(e => e.ID == id);
             repository.DeleteRepeatConfig(config);
         }
 
@@ -144,7 +150,7 @@ namespace RoomReservation.Controllers
                     {
                         for (int i = 0; i <= 6; i++)
                         {
-                            
+
                             if (repeating.RepeatsOn.Contains((int)currentDate.DayOfWeek) && currentDate <= repeating.RepeatUntil)
                             {
                                 var newEvent = new Event
