@@ -8,6 +8,7 @@ schedulerNS.calendar = (function () {
 
     //Calendar setup
     function setupCalendar() {
+        getRooms();
         $('#calendar').fullCalendar({
             header: {
                 left: 'prev,next,today',
@@ -82,16 +83,17 @@ schedulerNS.calendar = (function () {
                         $('#btnDelete').show();
                         $('#btnDeleteAll').hide();
                     }
+                    $("#slcRooms").val(event.roomId);
                     $("#cbRepeatingEvent").prop('disabled', true);
                     $('#eventModal').modal('toggle');
                     $('#txtTitle').val(event.title);
                 }
             },
             eventDrop: function (event, revertFunc) {
-                updateEvent(event.start, event.end, event.id, event.title);
+                updateEvent(event);
             },
             eventResize: function (event, revertFunc) {
-                updateEvent(event.start, event.end, event.id, event.title);
+                updateEvent(event);
             },
             viewRender: function(view, element) {
                 if (view.name === 'month') {
@@ -108,7 +110,7 @@ schedulerNS.calendar = (function () {
             events: function (start, end, timezone, callback) {
                 $.ajax({
                     type: 'GET',
-                    url: urlReferrer + 'api/events/room/' + $('#hdnRoomId').val(),
+                    url: urlReferrer + 'api/events',
                     dataType: 'json',
                     contentType: 'application/json',
                     data: {
@@ -126,6 +128,7 @@ schedulerNS.calendar = (function () {
                                     end: value.DateTo,
                                     editable: true,
                                     person: value.Person,
+                                    roomId: value.RoomID,
                                     repeatConfigId: value.RepeatConfigID
                                 });
                             } else {
@@ -138,6 +141,7 @@ schedulerNS.calendar = (function () {
                                     color: '#B5B8B8',
                                     textColor: '#000000',
                                     person: value.Person,
+                                    roomId: value.RoomID,
                                     repeatConfigId: value.RepeatConfigID
                                 });
                             }
@@ -166,7 +170,7 @@ schedulerNS.calendar = (function () {
                     trigger: 'hover',
                     title: 'Reservation',
                     placement: 'right',
-                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person,
+                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person + '<br /><b>Room:</b> ' + getRoomById(event.roomId),
                 });
             }
         });
@@ -177,12 +181,12 @@ schedulerNS.calendar = (function () {
                 if (!$('#cbRepeatingEvent').is(":checked")) {
                     if (!currentEvent.id) {
                         var newEvent = {
-                            'Title': $('#txtTitle').val(),
-                            'DateFrom': currentEvent.start.format(),
-                            'DateTo': currentEvent.end.format(),
-                            'Person': $('#hdnUserName').val(),
-                            'RoomID': $('#hdnRoomId').val(),
-                            'RepeatConfigID': '-999'
+                            Title: $('#txtTitle').val(),
+                            DateFrom: currentEvent.start.format(),
+                            DateTo: currentEvent.end.format(),
+                            Person: $('#hdnUserName').val(),
+                            RoomID: $('#slcRooms').val(),
+                            RepeatConfigID: '-999'
                         };
                         $.ajax({
                             type: 'POST',
@@ -196,7 +200,7 @@ schedulerNS.calendar = (function () {
                             }
                         });
                     } else {
-                        updateEvent(currentEvent.start, currentEvent.end, currentEvent.id);
+                        updateEvent(currentEvent, $('#txtTitle').val(), $('#slcRooms').val());
                     }
                     $('#eventModal').modal('toggle');
                 } else {
@@ -214,7 +218,7 @@ schedulerNS.calendar = (function () {
                         EndDate: currentEvent.end.format('HH:mm'),
                         Title: $('#txtTitle').val(),
                         Person: $('#hdnUserName').val(),
-                        RoomId: $('#hdnRoomId').val()
+                        RoomId: $('#slcRooms').val()
                     };
                     $.ajax({
                         type: 'POST',
@@ -232,6 +236,10 @@ schedulerNS.calendar = (function () {
                 }
             }
         });
+
+        function getRoomById(roomId) {
+           return $("#slcRooms option[value='" + roomId + "']").text();
+        }
 
         $('#txtTitle').keypress(function () {
             $(this).closest('.form-group').removeClass('has-error');
@@ -349,6 +357,7 @@ schedulerNS.calendar = (function () {
             $('#slcRepeat').val('weekly');
             $('#divDaysOfWeek').show();
             $('#slcRepeatEvery').val('1');
+            $("#slcRooms").val($("#slcRooms option:first").val());
             $("#dtEnds-input").val(moment().add('months', 1).format('MM/DD/YYYY'));
             $('#divDaysOfWeek input:checked').each(function () {
                 $(this).prop('checked', false);
@@ -389,26 +398,44 @@ schedulerNS.calendar = (function () {
             return dateRegex.test(date);
         }
 
-        function updateEvent(start, end, eventId, title) {
-            var event = {
-                'Title': title ? title : $('#txtTitle').val(),
-                'DateFrom': start.format(),
-                'DateTo': end.format(),
-                'ID': eventId,
-                'Person': $('#hdnUserName').val(),
-                'RoomID': $('#hdnRoomId').val(),
-                'RepeatConfigID': '-999'
+        function updateEvent(event, newTitle, roomId) {
+            var newEvent = {
+                Title: newTitle ? newTitle : event.title,
+                DateFrom: event.start.format(),
+                DateTo: event.end.format(),
+                ID: event.id,
+                Person: $('#hdnUserName').val(),
+                RoomID: roomId ? roomId: event.roomId,
+                RepeatConfigID: '-999'
             };
 
             $.ajax({
                 type: 'PUT',
-                url: urlReferrer + 'api/events/' + $('#hdnRoomId').val(),
-                data: event,
+                url: urlReferrer + 'api/events/' + event.roomId,
+                data: newEvent,
                 success: function () {
                     $('#calendar').fullCalendar('refetchEvents');
                 },
                 error: function (xhr, textStatus, errorThrown) {
-                    alert('Error, could not save event!');
+                    alert('Error, could not update event!');
+                }
+            });
+        }
+
+        function getRooms() {
+            $.ajax({
+                type: 'GET',
+                url: urlReferrer + 'api/events/room',
+                dataType: 'json',
+                contentType: 'application/json',
+                success: function (data) {
+                    var sel = $('#slcRooms').empty();
+                    $.each(data, function (key, value) {
+                        sel.append('<option value="' + value.ID + '">' + value.Title + '</option>');
+                    });
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert('Error, Could not get Rooms from db!');
                 }
             });
         }

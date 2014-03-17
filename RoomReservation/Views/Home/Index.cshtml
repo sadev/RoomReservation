@@ -1,26 +1,125 @@
-﻿@using Microsoft.AspNet.Identity
-@model IEnumerable<RoomReservation.Domain.Entities.Room>
-
+﻿
 @{
-    ViewBag.Title = "Home Page";
+    ViewBag.Title = "Scheduler";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
+<h2>Scheduler</h2>
 
 @if (Request.IsAuthenticated)
 {
-        <div class="jumbotron">
-            <h1>Room Reservation</h1>
-            <p class="lead">Welcome to Conference Room Reservation Site. Please pick a room.</p>
-        </div>
+    @Html.Hidden("hdnUserName", (string)ViewBag.UserName, new { @id = "hdnUserName" })
+    <div id="calendar"></div>
+    <div>
+        <div id="eventModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="form-horizontal">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                            <h4 class="modal-title">Event</h4>
+                        </div>
+                        <div id="modalForm" class="modal-body">
+                            <div class="form-group">
+                                <label for="txtTitle" class="col-sm-2 control-label">Title</label>
+                                <div class="col-sm-8">
+                                    <input class="form-control" id="txtTitle" type="text" title="Title" placeholder="Event title..." />
+                                </div>
+                                <div class="col-sm-8">
+                                    <span id="titleSpan" style="margin-left: 95px; display: none" class="help-block">Title field is required</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="slcRooms" class="col-sm-2 control-label">Rooms</label>
+                                <div class="col-sm-5">
+                                    <select id="slcRooms" class="form-control"></select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-sm-offset-2 col-sm-10">
+                                    <div class="checkbox">
+                                        <label><input id="cbRepeatingEvent" type="checkbox">Repeating event</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="repeatingEventForm">
+                                <div class="form-group">
+                                    <label for="slcRepeat" class="col-sm-2 control-label">Repeats</label>
+                                    <div class="col-sm-5">
+                                        <select id="slcRepeat" class="form-control">
+                                            <option value="weekly">Weekly</option>
+                                            <option value="daily">Daily</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="grpRepeatEvery" class="form-group">
+                                    <label for="slcRepeatEvery" class="col-sm-2 control-label">Repeat every</label>
+                                    <div class="inline-block">
+                                        <div class="col-sm-2">
+                                            <select id="slcRepeatEvery" class="form-control">
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                                <option value="7">7</option>
+                                                <option value="8">8</option>
+                                                <option value="9">9</option>
+                                                <option value="10">10</option>
+                                            </select>
+                                        </div>
+                                        <label id="lblRepeatEvery" class="control-label">week</label>
+                                    </div>
+                                </div>
+                                <div id="divDaysOfWeek" class="form-group">
+                                    <label class="col-sm-2 control-label">Repeats on</label>
+                                    <label style="margin-left:15px" class="checkbox-inline"><input type="checkbox" value="1">M</label>
+                                    <label class="checkbox-inline"><input type="checkbox" value="2">T</label>
+                                    <label class="checkbox-inline"><input type="checkbox" value="3">W</label>
+                                    <label class="checkbox-inline"><input type="checkbox" value="4">T</label>
+                                    <label class="checkbox-inline"><input type="checkbox" value="5">F</label>
+                                    <span id="daysSpan" style="margin-left: 110px; display: none" class="help-block">Please select one or more days</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Ends</label>
+                                    <div class='col-sm-6 input-group date' id='dtEnds'>
+                                        <input id="dtEnds-input" type='text' class="form-control" />
+                                        <span class="input-group-addon">
+                                            <span data-icon-element="" class="fa fa-calendar">
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class='col-sm-6'>
+                                        <span id="dateSpan" style="margin-left: 95px; display: none" class="help-block"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="btnDelete" type="button" class="btn btn-danger" data-dismiss="modal">Delete</button>
+                        <button id="btnDeleteAll" type="button" class="btn btn-danger" data-dismiss="modal">Delete all</button>
+                        <button id="btnSave" type="button" class="btn btn-primary">Save</button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+    </div>
 
-    foreach (var room in Model)
-    {
-        <div class="metro">
-            <div class="tile quadro block notice marker-on-right bg-grayLighter  text-center" onclick="location.href='@Url.Action("Scheduler", "Home", new { id = room.ID })'">
-                    <p class="subheader-secondary fg-black">@room.Title</p>
-            </div>
-        </div>
+    @section Scripts {
+        <script type="text/javascript">
+            $(document).ready(function () {
+                schedulerNS.calendar.setupCalendar();
+                $('#dtEnds').datetimepicker({
+                    defaultDate: moment().add('months', 1).format('MM/DD/YYYY'),
+                    pickTime: false,
+                    format: 'MM/DD/YYYY'
+                });
+                $('#repeatingEventForm').hide();
+            });
+        </script>
     }
-
 }
 else
 {

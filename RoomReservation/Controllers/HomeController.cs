@@ -12,24 +12,10 @@ namespace RoomReservation.Controllers
 {
     public class HomeController : Controller
     {
-        IReservationRepository repository;
-
-        public HomeController()
-        {
-            repository = new ReservationRepository();
-        }
-
-        public ActionResult Index()
-        {
-            IEnumerable<Room> rooms = repository.Rooms;
-
-            return View(rooms);
-        }
 
         [Authorize]
-        public ActionResult Scheduler(int id)
+        public ActionResult Index()
         {
-            ViewBag.RoomID = id;
             ViewBag.UserName = User.Identity.Name;
             return View();
         }

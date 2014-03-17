@@ -41,6 +41,16 @@ namespace RoomReservation.Controllers
             return repository.Events.Where(x => x.RoomID == id);
         }
 
+        [Route("api/events/room")]
+        public IEnumerable<object> GetRooms()
+        {
+            return repository.Rooms.Select(r=>new
+            {
+                r.ID,
+                r.Title
+            });
+        }
+
         [Route("api/events/repeatconfig")]
         [HttpPost]
         public HttpResponseMessage GetRepeatData(RepeatingEvent repeating)
