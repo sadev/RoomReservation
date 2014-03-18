@@ -128,34 +128,18 @@ schedulerNS.calendar = (function () {
                         var events = [];
                         $.each(data, function (key, value) {
                             if ($('#hdnUserName').val() === value.Person) {
-                                if (getRoomById(value.RoomID) === 'Yellow room') {
-                                    events.push({
-                                        id: value.ID,
-                                        title: value.Title,
-                                        start: value.DateFrom,
-                                        end: value.DateTo,
-                                        editable: true,
-                                        person: value.Person,
-                                        color: '#F7E00C',
-                                        textColor: '#000000',
-                                        roomId: value.RoomID,
-                                        repeatConfigId: value.RepeatConfigID
-                                    });
-                                } else {
-                                    events.push({
-                                        id: value.ID,
-                                        title: value.Title,
-                                        start: value.DateFrom,
-                                        end: value.DateTo,
-                                        editable: true,
-                                        person: value.Person,
-                                        color: '#CD881A',
-                                        textColor: '#000000',
-                                        roomId: value.RoomID,
-                                        repeatConfigId: value.RepeatConfigID
-                                    });
-                                }
-                               
+                                events.push({
+                                    id: value.ID,
+                                    title: value.Title,
+                                    start: value.DateFrom,
+                                    end: value.DateTo,
+                                    editable: true,
+                                    person: value.Person,
+                                    color: getRoomById(value.RoomID) === 'Yellow room' ? '#F7E00C' : '#CD881A',
+                                    textColor: '#000000',
+                                    roomId: value.RoomID,
+                                    repeatConfigId: value.RepeatConfigID
+                                });                        
                             } else {
                                 events.push({
                                     id: value.ID,
@@ -163,7 +147,8 @@ schedulerNS.calendar = (function () {
                                     start: value.DateFrom,
                                     end: value.DateTo,
                                     editable: false,
-                                    color: '#B5B8B8',
+                                    backgroundColor:'#B5B8B8',
+                                    borderColor: getRoomById(value.RoomID) === 'Yellow room' ? '#F7E00C' : '#CD881A',
                                     textColor: '#000000',
                                     person: value.Person,
                                     roomId: value.RoomID,
