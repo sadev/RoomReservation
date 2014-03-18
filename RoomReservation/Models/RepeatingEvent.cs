@@ -17,5 +17,7 @@ namespace RoomReservation.Models
         public string Title { get; set; }
         public string Person { get; set; }
         public int RoomId { get; set; }
+        public bool DropResizeEvent { get; set; }
+        public int DayDiff { get; set; }
     }
 }

@@ -12,7 +12,9 @@ namespace RoomReservation.Domain.Concrete
     {
         public EFDbContext()
             : base("DefaultConnection")
-        { }
+        {
+            this.Configuration.LazyLoadingEnabled = false;
+        }
 
         public DbSet<Event> Events { get; set; }
         public DbSet<Room> Rooms { get; set; }

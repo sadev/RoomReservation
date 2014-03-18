@@ -17,6 +17,7 @@ namespace RoomReservation.Controllers
     public class EventsController : ApiController
     {
         IReservationRepository repository;
+        private const int SingleEventId = -999;
 
         public EventsController()
         {
@@ -24,9 +25,9 @@ namespace RoomReservation.Controllers
         }
 
         // GET api/event
-        public IEnumerable<Event> Get()
+        public IEnumerable<Event> Get(DateTime fromDate)
         {
-            return repository.Events;
+            return repository.Events.Where(s=>s.DateFrom >=fromDate);
         }
 
         // GET api/event/5
@@ -42,20 +43,16 @@ namespace RoomReservation.Controllers
         }
 
         [Route("api/events/room")]
-        public IEnumerable<object> GetRooms()
+        public IEnumerable<Room> GetRooms()
         {
-            return repository.Rooms.Select(r=>new
-            {
-                r.ID,
-                r.Title
-            });
+            return repository.Rooms;
         }
 
         [Route("api/events/repeatconfig")]
         [HttpPost]
-        public HttpResponseMessage GetRepeatData(RepeatingEvent repeating)
+        public HttpResponseMessage CreatReccuringEvent(RepeatingEvent repeating)
         {
-            if (repeating.RepeatingID == -999)
+            if (repeating.RepeatingID == SingleEventId)
             {
                 var config = new RepeatConfig
                 {
@@ -69,6 +66,8 @@ namespace RoomReservation.Controllers
             }
             else
             {
+                if (repeating.DropResizeEvent)
+                    repeating.RepeatUntil = repeating.RepeatUntil.AddDays(repeating.DayDiff);
                 var config = new RepeatConfig
                 {
                     ID = repeating.RepeatingID,
@@ -83,7 +82,22 @@ namespace RoomReservation.Controllers
                 {
                     Event eEvent = events.OrderBy(t => t.DateFrom)
                         .FirstOrDefault();
-                    if (eEvent != null) repeating.StartDate = eEvent.DateFrom;
+                    if (eEvent != null)
+                    {
+                        if (repeating.DropResizeEvent)
+                        {
+                            DateTime tempDate = eEvent.DateFrom.Date;
+                            tempDate = tempDate.AddDays(repeating.DayDiff);
+                            tempDate = tempDate.AddHours(repeating.StartDate.Hour);
+                            tempDate = tempDate.AddMinutes(repeating.StartDate.Minute);
+                            repeating.StartDate = tempDate;
+                        }
+                        else
+                        {
+                            repeating.StartDate = eEvent.DateFrom;
+                        }
+
+                    }
                 }
                 foreach (Event eEvent in events)
                 {
@@ -150,6 +164,7 @@ namespace RoomReservation.Controllers
             }
         }
 
+        #region Helpers
         private void CreateRepeatingEvents(RepeatingEvent repeating)
         {
             var currentDate = repeating.StartDate.Date;
@@ -223,5 +238,6 @@ namespace RoomReservation.Controllers
                     break;
             }
         }
+        #endregion
     }
 }

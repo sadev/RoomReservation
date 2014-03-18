@@ -5,6 +5,7 @@ var urlReferrer = window.location.href.substring(0, window.location.href.indexOf
 schedulerNS.calendar = (function () {
 
     var currentEvent = null;
+    var dragEventStartDate = null;
 
     //Calendar setup
     function setupCalendar() {
@@ -25,6 +26,9 @@ schedulerNS.calendar = (function () {
             axisFormat: 'HH:mm',
             timeFormat: 'H(:mm)',
             minTime: '08:00',
+            columnFormat: {
+                week: 'ddd D/M'
+            },
             weekends: false,
             select: function (start, end) {
                 $('#txtTitle').val('');
@@ -90,10 +94,14 @@ schedulerNS.calendar = (function () {
                 }
             },
             eventDrop: function (event, revertFunc) {
-                updateEvent(event);
+                dropResizeEvent(event);
             },
             eventResize: function (event, revertFunc) {
-                updateEvent(event);
+                dragEventStartDate = event.start;
+                dropResizeEvent(event);
+            },
+            eventDragStart: function(event, revertFunc) {
+                dragEventStartDate = event.start;
             },
             viewRender: function(view, element) {
                 if (view.name === 'month') {
@@ -114,23 +122,40 @@ schedulerNS.calendar = (function () {
                     dataType: 'json',
                     contentType: 'application/json',
                     data: {
-                        start: start.format(),
-                        end: end.format()
+                        fromDate: moment().subtract('days', 10).format('MM/DD/YYYY')
                     },
                     success: function (data) {
                         var events = [];
                         $.each(data, function (key, value) {
                             if ($('#hdnUserName').val() === value.Person) {
-                                events.push({
-                                    id: value.ID,
-                                    title: value.Title,
-                                    start: value.DateFrom,
-                                    end: value.DateTo,
-                                    editable: true,
-                                    person: value.Person,
-                                    roomId: value.RoomID,
-                                    repeatConfigId: value.RepeatConfigID
-                                });
+                                if (getRoomById(value.RoomID) === 'Yellow room') {
+                                    events.push({
+                                        id: value.ID,
+                                        title: value.Title,
+                                        start: value.DateFrom,
+                                        end: value.DateTo,
+                                        editable: true,
+                                        person: value.Person,
+                                        color: '#F7E00C',
+                                        textColor: '#000000',
+                                        roomId: value.RoomID,
+                                        repeatConfigId: value.RepeatConfigID
+                                    });
+                                } else {
+                                    events.push({
+                                        id: value.ID,
+                                        title: value.Title,
+                                        start: value.DateFrom,
+                                        end: value.DateTo,
+                                        editable: true,
+                                        person: value.Person,
+                                        color: '#CD881A',
+                                        textColor: '#000000',
+                                        roomId: value.RoomID,
+                                        repeatConfigId: value.RepeatConfigID
+                                    });
+                                }
+                               
                             } else {
                                 events.push({
                                     id: value.ID,
@@ -396,6 +421,79 @@ schedulerNS.calendar = (function () {
         function validateDate(date) {
             var dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/;
             return dateRegex.test(date);
+        }
+
+        function dropResizeEvent(event) {
+            if (event.repeatConfigId === -999) {
+                updateEvent(event);
+            } else {
+                $.ajax({
+                    type: 'GET',
+                    url: urlReferrer + 'api/events/repeatconfig/' + event.repeatConfigId,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    success: function (response) {
+                        var repeatsOn = [];
+                        var days = response.RepeatsOn.split(',');
+                        var startDrag = dragEventStartDate.format('MM/DD/YYYY');
+                        var endDrag = event.start.format('MM/DD/YYYY');
+                        var dayDiff = moment(endDrag).diff(moment(startDrag), 'days');
+                        for (var i = 0; i < days.length; i++) {
+                            var temp = days[i];
+                            var tempDay = dayDiff;
+                            if (tempDay > 0) {
+                                while (tempDay) {
+                                    if (temp == 5)
+                                        temp = 1;
+                                    else {
+                                        temp++;
+                                    }
+                                    tempDay--;
+                                }
+                            } else if (tempDay < 0) {
+                                while (tempDay) {
+                                    if (temp == 1)
+                                        temp = 5;
+                                    else {
+                                        temp--;
+                                    }
+                                    tempDay++;
+                                }
+                            }
+                            repeatsOn.push(temp);
+                        }
+                        var result = {
+                            RepeatingID: event.repeatConfigId,
+                            RepeatType: response.RepeatType,
+                            RepeatEvery: response.RepeatEvery,
+                            RepeatsOn: repeatsOn,
+                            RepeatUntil: response.RepeatUntil,
+                            StartDate: event.start.format('MM/DD/YYYY HH:mm'),
+                            EndDate: event.end.format('HH:mm'),
+                            Title: event.title,
+                            Person: event.person,
+                            RoomId: event.roomId,
+                            DropResizeEvent: true,
+                            DayDiff:dayDiff
+                        };
+                        $.ajax({
+                            type: 'POST',
+                            url: urlReferrer + 'api/events/repeatconfig',
+                            contentType: 'application/json',
+                            data: JSON.stringify(result),
+                            success: function () {
+                                $('#calendar').fullCalendar('refetchEvents');
+                            },
+                            error: function (xhr, textStatus, errorThrown) {
+                                alert('Error, could not save events!');
+                            }
+                        });
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert('Error, could not save event!');
+                    }
+                });
+            }
         }
 
         function updateEvent(event, newTitle, roomId) {
