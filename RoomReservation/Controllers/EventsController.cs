@@ -50,7 +50,7 @@ namespace RoomReservation.Controllers
 
         [Route("api/events/repeatconfig")]
         [HttpPost]
-        public HttpResponseMessage CreatReccuringEvent(RepeatingEvent repeating)
+        public HttpResponseMessage CreateReccuringEvent(RepeatingEvent repeating)
         {
             if (repeating.RepeatingID == SingleEventId)
             {
@@ -147,7 +147,7 @@ namespace RoomReservation.Controllers
             {
                 return Request.CreateResponse(HttpStatusCode.BadRequest);
             }
-
+       
             repository.UpdateEvent(value);
 
             return Request.CreateResponse(HttpStatusCode.OK);

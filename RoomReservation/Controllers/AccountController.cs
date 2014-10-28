@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -15,14 +16,20 @@ namespace RoomReservation.Controllers
     [Authorize]
     public class AccountController : Controller
     {
+        static readonly ApplicationDbContext Context=new ApplicationDbContext();
         public AccountController()
-            : this(new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext())))
+            : this(new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(Context)))
         {
         }
 
         public AccountController(UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
+        }
+        [Route("api/users")]
+        public IEnumerable<string> GetAllUsers()
+        {
+            return Context.Users.Select(user => user.UserName).ToList();
         }
 
         public UserManager<ApplicationUser> UserManager { get; private set; }

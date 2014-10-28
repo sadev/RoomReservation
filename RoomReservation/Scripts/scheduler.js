@@ -94,11 +94,19 @@ schedulerNS.calendar = (function () {
                 }
             },
             eventDrop: function (event, revertFunc) {
-                dropResizeEvent(event);
+                //if (isOverlappingOnDropResize(event)) {
+                //    revertFunc();
+                //    return;
+                //}
+                dropResizeEvent(event, revertFunc);
             },
             eventResize: function (event, revertFunc) {
+                //if (isOverlappingOnDropResize(event)) {
+                //    revertFunc();
+                //    return;
+                //}
                 dragEventStartDate = event.start;
-                dropResizeEvent(event);
+                dropResizeEvent(event, revertFunc);
             },
             eventDragStart: function(event, revertFunc) {
                 dragEventStartDate = event.start;
@@ -180,13 +188,16 @@ schedulerNS.calendar = (function () {
                     trigger: 'hover',
                     title: 'Reservation',
                     placement: 'right',
-                    content: '<b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person + '<br /><b>Room:</b> ' + getRoomById(event.roomId),
+                    content: '<b>ID:</b> ' + event.id + '<br /><b>Title:</b> ' + event.title + '<br /><b>Start:</b> ' + event.start.format('HH:mm') + '<br /><b>End:</b> ' + event.end.format('HH:mm') + '<br /><b>Creator:</b> ' + event.person + '<br /><b>Room:</b> ' + getRoomById(event.roomId),
                 });
             }
         });
 
         //jQuery events
         $('#btnSave').on('click', function () {
+            if (isOverlappingOnCreate(currentEvent)) {
+                return;
+            }
             if (validateForm()) {
                 if (!$('#cbRepeatingEvent').is(":checked")) {
                     if (!currentEvent.id) {
@@ -245,6 +256,15 @@ schedulerNS.calendar = (function () {
                     $('#eventModal').modal('toggle');
                 }
             }
+        });
+
+        $('#slcRooms').change(function () {
+            if (currentEvent.id) {
+                if (isOverlappingOnCreate(currentEvent, $('#slcRooms').val())) {
+                    $('#slcRooms').val(currentEvent.roomId);
+                }
+            }
+            
         });
 
         function getRoomById(roomId) {
@@ -394,6 +414,7 @@ schedulerNS.calendar = (function () {
                 $("#dateSpan").css("display", "block");
                 $("#dateSpan").text('Date is required');
                 result = false;
+
             } else if (!validateDate($("#dtEnds-input").val())) {
                 $('#dtEnds-input').closest('.form-group').addClass('has-error');
                 $("#dateSpan").css("display", "block");
@@ -408,8 +429,12 @@ schedulerNS.calendar = (function () {
             return dateRegex.test(date);
         }
 
-        function dropResizeEvent(event) {
+        function dropResizeEvent(event, revertFunc) {
             if (event.repeatConfigId === -999) {
+                if (isOverlapping(event)) {
+                    revertFunc();
+                    return;
+                }
                 updateEvent(event);
             } else {
                 $.ajax({
@@ -461,6 +486,12 @@ schedulerNS.calendar = (function () {
                             DropResizeEvent: true,
                             DayDiff:dayDiff
                         };
+
+                        if (isOverlapping(event, repeatsOn, response.RepeatEvery, response.RepeatUntil)) {
+                            revertFunc();
+                            return;
+                        }
+                        
                         $.ajax({
                             type: 'POST',
                             url: urlReferrer + 'api/events/repeatconfig',
@@ -521,6 +552,171 @@ schedulerNS.calendar = (function () {
                     alert('Error, Could not get Rooms from db!');
                 }
             });
+        }
+
+        function isOverlapping(event, repeatsOn, ocurrence, repeatUntil) {
+            var eventStart = event.start.format('HH:mm');
+            var eventEnd = event.end.format('HH:mm');
+            var events = $('#calendar').fullCalendar('clientEvents');
+            var weekNumbers = [];
+
+            if (ocurrence > 1) {
+                var startDate = moment(event.start.format());
+                var endDate = moment(repeatUntil);
+                for (var m = startDate; m.isBefore(endDate) ; m.add('weeks', ocurrence)) {
+                    weekNumbers.push(m.week());
+                }
+            }
+
+            for (var i = 0; i < events.length; i++) {
+
+                if (events[i].id === event.id)
+                    continue;
+
+                if (event.repeatConfigId === -999) {
+
+                    if (moment(events[i].start.format('MM/DD/YYYY')).isSame(event.start.format('MM/DD/YYYY')) && event.roomId.toString() === events[i].roomId.toString()) {
+                        // start-time in between any of the events
+                        if (eventStart > events[i].start.format('HH:mm') && eventStart < events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                        //end-time in between any of the events
+                        if (eventEnd > events[i].start.format('HH:mm') && eventEnd < events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                        //any of the events in between/on the start-time and end-time
+                        if (eventStart <= events[i].start.format('HH:mm') && eventEnd >= events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                    }
+                } else {
+                    if (!moment(events[i].start).isBefore(moment()) && event.roomId.toString() === events[i].roomId.toString()) {
+
+                        if (events[i].repeatConfigId === event.repeatConfigId) continue;
+
+                        if (weekNumbers.length) {
+                            if ($.inArray(events[i].start.week(), weekNumbers) == -1) {
+                                console.log(events[i].start.week());
+                                continue;
+                            }
+                        }
+
+                        for (var day in repeatsOn) {
+                            if (events[i].start.day().toString() === repeatsOn[day].toString()) {
+                                // start-time in between any of the events
+                                if (eventStart > events[i].start.format('HH:mm') && eventStart < events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                                //end-time in between any of the events
+                                if (eventEnd > events[i].start.format('HH:mm') && eventEnd < events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                                //any of the events in between/on the start-time and end-time
+                                if (eventStart <= events[i].start.format('HH:mm') && eventEnd >= events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                            }
+                        }
+                    }              
+                }
+            }
+          return false;
+        }
+
+        function isOverlappingOnCreate(event, rId) {
+            var eventStart = event.start.format('HH:mm');
+            var eventEnd = event.end.format('HH:mm');
+            var events = $('#calendar').fullCalendar('clientEvents');
+            var weekNumbers = [];
+            var roomId = event.roomId ? event.roomId : $('#slcRooms').val();
+
+            if (rId) {
+                roomId = rId;
+            }
+
+            if (parseInt($('#slcRepeatEvery').val()) > 1) {
+                var startDate = moment(event.start.format());
+                var endDate = moment($("#dtEnds-input").val());
+                for (var m = startDate; m.isBefore(endDate); m.add('weeks', parseInt($('#slcRepeatEvery').val()))) {
+                    weekNumbers.push(m.week());
+                }
+            }
+
+            for (var i = 0; i < events.length; i++) {
+
+                if (event.id) {
+                    if (events[i].id === event.id)
+                        continue;
+                }
+                
+                if (!$('#cbRepeatingEvent').is(":checked")) {
+                    if (moment(events[i].start.format('MM/DD/YYYY')).isSame(event.start.format('MM/DD/YYYY')) && roomId.toString() === events[i].roomId.toString()) {
+                        // start-time in between any of the events
+                        if (eventStart > events[i].start.format('HH:mm') && eventStart < events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                        //end-time in between any of the events
+                        if (eventEnd > events[i].start.format('HH:mm') && eventEnd < events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                        //any of the events in between/on the start-time and end-time
+                        if (eventStart <= events[i].start.format('HH:mm') && eventEnd >= events[i].end.format('HH:mm')) {
+                            alertMessage();
+                            return true;
+                        }
+                    }
+
+                } else {
+                    if (!moment(events[i].start).isBefore(moment()) && roomId.toString() === events[i].roomId.toString()) {
+
+                    var repeatsOn = [];
+                    $('#divDaysOfWeek input:checked').each(function () {
+                        repeatsOn.push($(this).val());
+                    });
+
+                    if (event.id)
+                        if (events[i].repeatConfigId === event.repeatConfigId) continue;
+
+                    if (weekNumbers.length) {
+                        if ($.inArray(events[i].start.week(), weekNumbers)==-1) {
+                            console.log(events[i].start.week());
+                            continue;
+                        }
+                    }
+                    for (var day in repeatsOn) {
+                        if (events[i].start.day().toString() === repeatsOn[day].toString()) {
+                                // start-time in between any of the events
+                                if (eventStart > events[i].start.format('HH:mm') && eventStart < events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                                //end-time in between any of the events
+                                if (eventEnd > events[i].start.format('HH:mm') && eventEnd < events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                                //any of the events in between/on the start-time and end-time
+                                if (eventStart <= events[i].start.format('HH:mm') && eventEnd >= events[i].end.format('HH:mm')) {
+                                    alertMessage();
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+          return false;
+        }
+        function alertMessage() {
+            alert("Event is overlapping, please choose an other time frame.");
         }
     }
     return {
